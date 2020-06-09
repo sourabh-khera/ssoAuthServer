@@ -1,38 +1,45 @@
 const express = require('express');
-const swaggerJsDoc = require('swagger-jsdoc');
-const swaggerUI = require('swagger-ui-express');
+const session = require('express-session');
+const redis = require('redis');
+const client = redis.createClient();
+const redisStore = require('connect-redis')(session);
 const path = require('path');
 
-const initExpress = require('./init/expressInit');
-const initRoutes = require('./init/routesInit');
-const { options } = require('./utils');
-global.logger = require('./configurations/logger');
-
 const app = express();
+app.use(session({
+  secret: 'ssshhhhh',
+  // create new redis store.
+  store: new redisStore({ host: 'localhost', port: 6379, client: client}),
+  saveUninitialized: false,
+  resave: false
+}));
 
-/*
- * express settings
- */
+app.use(express.json());
 
-initExpress(app);
+app.post('/', (req, res) => {
+  console.log(req.body);
+  req.session.userName = req.body.userName;
+  console.log(req.session);
+  res.status(200).send('Hello');
+})
 
-/*
- * server application routes
- *
- */
+app.get('/logout', (req, res)=>{
+  console.log(req.session);
+  req.session.destroy((err)=>{
+    if(err) {
+      return console.log(err);
+  }
+  res.status(200).send('done');
+  })
+});
 
-initRoutes(app);
-
-const swaggerDocs = swaggerJsDoc(options);
-app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerDocs));
-// All undefined asset or api routes should return a 404
-app.route('*')
-  .get((req, res) => res.status(404).send({message:'not found!!'}))
-  .post((req, res) => res.status(404).send({message:'not found!!'}))
-  .put((req, res) => res.status(404).send({message:'not found!!'}))
-  .delete((req, res) => res.status(404).send({message:'not found!!'}));
-
-
-app.listen(app.get('port'));
-
-module.exports = app;
+app.get('/reload', (req, res)=>{
+  req.session.reload((err)=>{
+    if(err) {
+      return console.log(err);
+  }
+  console.log(req.session)
+  res.status(200).send('done');
+  })
+});
+app.listen(3000, ()=> console.log('server listening on port 3000'));
