@@ -19,7 +19,8 @@ const dbString = 'mongodb://localhost/session_db';
 const connection = mongoose.createConnection(dbString);
 const sessionStore = new MongoStore({
   mongooseConnection: connection,
-  collection: 'sessions_sso'
+  collection: 'sessions',
+  stringify: false,
 });
 
 app.set('view engine', ejs);
